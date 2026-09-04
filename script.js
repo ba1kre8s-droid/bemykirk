@@ -14,7 +14,7 @@
   let dodgeLock = false;
   let lastDodgeAt = 0;
 
-  // Moves NO anywhere on screen, while keeping it away from YES.
+  // NO can move around the whole screen, but never overlap the YES button.
   function moveNoAway(clientX, clientY) {
     if (dodgeLock || revealStarted) return;
 
@@ -26,17 +26,13 @@
     const yesRect = yesBtn.getBoundingClientRect();
 
     const margin = 14;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
     const bw = btn.width;
     const bh = btn.height;
+    const maxX = Math.max(margin, window.innerWidth - bw - margin);
+    const maxY = Math.max(margin, window.innerHeight - bh - margin);
 
-    const maxX = Math.max(margin, vw - bw - margin);
-    const maxY = Math.max(margin, vh - bh - margin);
-
-    // Expanded YES exclusion zone so NO never sits on top of / too close to YES.
-    const safeGap = 34;
-    const forbidden = {
+    const safeGap = 36;
+    const yesSafe = {
       left: yesRect.left - safeGap,
       right: yesRect.right + safeGap,
       top: yesRect.top - safeGap,
@@ -44,25 +40,23 @@
     };
 
     function overlapsYes(x, y) {
-      const r = {
-        left: x,
-        right: x + bw,
-        top: y,
-        bottom: y + bh
-      };
+      const left = x;
+      const right = x + bw;
+      const top = y;
+      const bottom = y + bh;
+
       return !(
-        r.right < forbidden.left ||
-        r.left > forbidden.right ||
-        r.bottom < forbidden.top ||
-        r.top > forbidden.bottom
+        right < yesSafe.left ||
+        left > yesSafe.right ||
+        bottom < yesSafe.top ||
+        top > yesSafe.bottom
       );
     }
 
     let best = null;
     let bestScore = -Infinity;
 
-    // Try many positions around the whole viewport.
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       const x = margin + Math.random() * Math.max(0, maxX - margin);
       const y = margin + Math.random() * Math.max(0, maxY - margin);
 
@@ -70,32 +64,15 @@
 
       const cx = x + bw / 2;
       const cy = y + bh / 2;
-      const pointerDist = Math.hypot(cx - clientX, cy - clientY);
+      const distanceFromPointer = Math.hypot(cx - clientX, cy - clientY);
 
-      // Prefer positions far from pointer and also not hugging YES.
-      const yesCx = yesRect.left + yesRect.width / 2;
-      const yesCy = yesRect.top + yesRect.height / 2;
-      const yesDist = Math.hypot(cx - yesCx, cy - yesCy);
-
-      const score = pointerDist + Math.min(yesDist, 320) * 0.4;
-
-      if (score > bestScore) {
-        bestScore = score;
+      if (distanceFromPointer > bestScore) {
+        bestScore = distanceFromPointer;
         best = { x, y };
       }
     }
 
-    // Fallback corners if random tries somehow fail.
-    if (!best) {
-      const fallback = [
-        [margin, margin],
-        [maxX, margin],
-        [margin, maxY],
-        [maxX, maxY]
-      ].find(([x, y]) => !overlapsYes(x, y));
-
-      best = fallback ? { x: fallback[0], y: fallback[1] } : { x: maxX, y: margin };
-    }
+    if (!best) return;
 
     noBtn.style.position = 'fixed';
     noBtn.style.left = `${best.x}px`;
