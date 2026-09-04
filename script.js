@@ -22,10 +22,7 @@
     if (now - lastDodgeAt < 90) return;
     lastDodgeAt = now;
 
-    const mobile = window.matchMedia('(max-width: 640px)').matches;
-    const area = mobile
-      ? { left: 8, top: 8, width: window.innerWidth - 16, height: window.innerHeight - 16 }
-      : controls.getBoundingClientRect();
+    const area = controls.getBoundingClientRect();
     const btn = noBtn.getBoundingClientRect();
 
     const bw = btn.width;
@@ -73,16 +70,8 @@
 
     if (!best) return;
 
-    if (mobile) {
-      noBtn.style.position = 'fixed';
-      noBtn.style.left = `${area.left + best.x}px`;
-      noBtn.style.top = `${area.top + best.y}px`;
-      noBtn.style.transform = 'none';
-      noBtn.style.zIndex = '30';
-    } else {
-      noBtn.style.left = `${best.x}px`;
-      noBtn.style.top = `${best.y}px`;
-    }
+    noBtn.style.left = `${best.x}px`;
+    noBtn.style.top = `${best.y}px`;
 
     dodgeLock = true;
     setTimeout(() => {
