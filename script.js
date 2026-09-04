@@ -1,173 +1,189 @@
 (() => {
-  const stage = document.getElementById('stage');
-  const controls = document.getElementById('controls');
-  const noBtn = document.getElementById('noBtn');
+  'use strict';
+
   const yesBtn = document.getElementById('yesBtn');
-  const hint = document.getElementById('hint');
-  const reactionFlash = document.getElementById('reactionFlash');
-  const reveal = document.getElementById('reveal');
-  const music = document.getElementById('music');
-  const boom = document.getElementById('boom');
+  const noBtn = document.getElementById('noBtn');
+  const flashOverlay = document.getElementById('flashOverlay');
+  const proposal = document.getElementById('proposal');
+  const yesScreen = document.getElementById('yesScreen');
+  const boomAudio = document.getElementById('boomAudio');
+  const yesMusic = document.getElementById('yesMusic');
 
-  let noAttempted = false;
-  let revealStarted = false;
-  let dodgeLock = false;
-  let lastDodgeAt = 0;
+  let noClicks = 0;
+  let yesUnlocked = false;
+  let flashTimer = null;
+  let shapeIndex = 0;
 
-  // NO can move around the whole screen, but never overlap the YES button.
-  function moveNoAway(clientX, clientY) {
-    if (dodgeLock || revealStarted) return;
+  const shapes = [
+    { w: 116, h: 50, radius: '999px', clip: 'none', rotate: -8 },
+    { w: 62,  h: 62, radius: '50%', clip: 'none', rotate: 8 },
+    { w: 145, h: 44, radius: '20px 999px 20px 999px', clip: 'none', rotate: -12 },
+    { w: 86,  h: 70, radius: '18px', clip: 'polygon(50% 0, 100% 50%, 50% 100%, 0 50%)', rotate: 10 },
+    { w: 150, h: 42, radius: '50% 16% 50% 16%', clip: 'none', rotate: 5 },
+    { w: 82,  h: 82, radius: '28% 72% 35% 65% / 55% 35% 65% 45%', clip: 'none', rotate: -6 },
+    { w: 132, h: 48, radius: '8px', clip: 'polygon(8% 0, 100% 0, 92% 100%, 0 100%)', rotate: 7 }
+  ];
 
-    const now = performance.now();
-    if (now - lastDodgeAt < 90) return;
-    lastDodgeAt = now;
-
-    const btn = noBtn.getBoundingClientRect();
-    const yesRect = yesBtn.getBoundingClientRect();
-
-    const margin = 14;
-    const bw = btn.width;
-    const bh = btn.height;
-    const maxX = Math.max(margin, window.innerWidth - bw - margin);
-    const maxY = Math.max(margin, window.innerHeight - bh - margin);
-
-    const safeGap = 36;
-    const yesSafe = {
-      left: yesRect.left - safeGap,
-      right: yesRect.right + safeGap,
-      top: yesRect.top - safeGap,
-      bottom: yesRect.bottom + safeGap
-    };
-
-    function overlapsYes(x, y) {
-      const left = x;
-      const right = x + bw;
-      const top = y;
-      const bottom = y + bh;
-
-      return !(
-        right < yesSafe.left ||
-        left > yesSafe.right ||
-        bottom < yesSafe.top ||
-        top > yesSafe.bottom
-      );
-    }
-
-    let best = null;
-    let bestScore = -Infinity;
-
-    for (let i = 0; i < 50; i++) {
-      const x = margin + Math.random() * Math.max(0, maxX - margin);
-      const y = margin + Math.random() * Math.max(0, maxY - margin);
-
-      if (overlapsYes(x, y)) continue;
-
-      const cx = x + bw / 2;
-      const cy = y + bh / 2;
-      const distanceFromPointer = Math.hypot(cx - clientX, cy - clientY);
-
-      if (distanceFromPointer > bestScore) {
-        bestScore = distanceFromPointer;
-        best = { x, y };
-      }
-    }
-
-    if (!best) return;
-
-    noBtn.style.position = 'fixed';
-    noBtn.style.left = `${best.x}px`;
-    noBtn.style.top = `${best.y}px`;
-    noBtn.style.transform = 'none';
-    noBtn.style.zIndex = '30';
-
-    dodgeLock = true;
-    setTimeout(() => {
-      dodgeLock = false;
-    }, 115);
+  function stopAndResetAudio(audio) {
+    audio.pause();
+    try { audio.currentTime = 0; } catch (_) {}
   }
 
-  function unlockYes() {
-    if (noAttempted) return;
-    noAttempted = true;
-    yesBtn.classList.remove('is-locked');
-    yesBtn.setAttribute('aria-disabled', 'false');
-    hint.textContent = 'Fine... YES is unlocked 😭';
+  function resetApp() {
+    noClicks = 0;
+    yesUnlocked = false;
+    shapeIndex = 0;
+    clearTimeout(flashTimer);
+
+    stopAndResetAudio(boomAudio);
+    stopAndResetAudio(yesMusic);
+
+    flashOverlay.classList.remove('show');
+    yesScreen.classList.remove('show');
+    yesScreen.setAttribute('aria-hidden', 'true');
+    proposal.hidden = false;
+
+    yesBtn.classList.remove('is-grown');
+
+    noBtn.className = 'choice no';
+    noBtn.removeAttribute('style');
+    noBtn.textContent = 'NO';
   }
 
-  function triggerReactionFlash() {
-    reactionFlash.classList.remove('is-playing');
-    void reactionFlash.offsetWidth;
-    reactionFlash.classList.add('is-playing');
-
+  function playBoom() {
     try {
-      boom.currentTime = 0;
-      boom.play();
+      boomAudio.pause();
+      boomAudio.currentTime = 0;
+      const p = boomAudio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (_) {}
   }
 
-  function handleNoAttempt(clientX, clientY) {
-    unlockYes();
-    triggerReactionFlash();
-    moveNoAway(clientX, clientY);
+  function flashReaction() {
+    clearTimeout(flashTimer);
+    flashOverlay.classList.remove('show');
+    // Force reflow so the animation restarts on every click.
+    void flashOverlay.offsetWidth;
+    flashOverlay.classList.add('show');
+
+    flashTimer = setTimeout(() => {
+      flashOverlay.classList.remove('show');
+    }, 560);
   }
 
-  // Desktop: dodge before the pointer ever reaches the button.
-  controls.addEventListener('pointermove', (event) => {
-    if (event.pointerType === 'touch' || revealStarted) return;
+  function overlaps(a, b, padding = 22) {
+    return !(
+      a.right + padding < b.left ||
+      a.left - padding > b.right ||
+      a.bottom + padding < b.top ||
+      a.top - padding > b.bottom
+    );
+  }
 
-    const noRect = noBtn.getBoundingClientRect();
-    const cx = noRect.left + noRect.width / 2;
-    const cy = noRect.top + noRect.height / 2;
-    const distance = Math.hypot(event.clientX - cx, event.clientY - cy);
+  function findSafePosition(width, height) {
+    const edge = 10;
+    const maxX = Math.max(edge, window.innerWidth - width - edge);
+    const maxY = Math.max(edge, window.innerHeight - height - edge);
+    const yesRect = yesBtn.getBoundingClientRect();
 
-    if (distance < 105) {
-      handleNoAttempt(event.clientX, event.clientY);
+    let fallback = { x: edge, y: edge };
+
+    for (let i = 0; i < 40; i++) {
+      const x = edge + Math.random() * Math.max(0, maxX - edge);
+      const y = edge + Math.random() * Math.max(0, maxY - edge);
+      const candidate = { left: x, top: y, right: x + width, bottom: y + height };
+      fallback = { x, y };
+      if (!overlaps(candidate, yesRect, 26)) return { x, y };
     }
-  }, { passive: true });
 
-  // Direct pointer entry fallback.
-  noBtn.addEventListener('pointerenter', (event) => {
-    if (event.pointerType !== 'touch') {
-      handleNoAttempt(event.clientX, event.clientY);
+    return fallback;
+  }
+
+  function morphNoButton() {
+    const shape = shapes[shapeIndex % shapes.length];
+    shapeIndex += 1;
+
+    noBtn.style.width = `${shape.w}px`;
+    noBtn.style.height = `${shape.h}px`;
+    noBtn.style.minWidth = '0';
+    noBtn.style.minHeight = '0';
+    noBtn.style.padding = '0 12px';
+    noBtn.style.borderRadius = shape.radius;
+    noBtn.style.clipPath = shape.clip;
+
+    return shape;
+  }
+
+  function dodgeNoButton(shape) {
+    const next = findSafePosition(shape.w, shape.h);
+
+    if (!noBtn.classList.contains('is-floating')) {
+      const start = noBtn.getBoundingClientRect();
+      noBtn.classList.add('is-floating');
+      noBtn.style.left = `${start.left}px`;
+      noBtn.style.top = `${start.top}px`;
+      // Force layout before transitioning to the random position.
+      void noBtn.offsetWidth;
     }
-  });
 
-  // Touch/mobile: first tap attempt unlocks YES and moves NO before click can complete.
-  noBtn.addEventListener('pointerdown', (event) => {
-    event.preventDefault();
-    handleNoAttempt(event.clientX, event.clientY);
-  }, { passive: false });
+    noBtn.classList.remove('dodge-jolt');
+    void noBtn.offsetWidth;
+    noBtn.classList.add('dodge-jolt');
+
+    noBtn.style.left = `${next.x}px`;
+    noBtn.style.top = `${next.y}px`;
+    noBtn.style.rotate = `${shape.rotate}deg`;
+  }
 
   noBtn.addEventListener('click', (event) => {
     event.preventDefault();
-    handleNoAttempt(event.clientX || innerWidth / 2, event.clientY || innerHeight / 2);
+
+    noClicks += 1;
+    yesUnlocked = true;
+
+    // All three effects start from the same click event.
+    playBoom();
+    flashReaction();
+    const shape = morphNoButton();
+    dodgeNoButton(shape);
+
+    if (noClicks === 10) {
+      yesBtn.classList.add('is-grown');
+    }
   });
 
-  yesBtn.addEventListener('click', async () => {
-    if (!noAttempted || revealStarted) return;
+  yesBtn.addEventListener('click', () => {
+    if (!yesUnlocked) return;
 
-    revealStarted = true;
-    hint.style.opacity = '0';
+    clearTimeout(flashTimer);
+    flashOverlay.classList.remove('show');
+    stopAndResetAudio(boomAudio);
+
+    proposal.hidden = true;
+    yesScreen.classList.add('show');
+    yesScreen.setAttribute('aria-hidden', 'false');
 
     try {
-      music.currentTime = 0;
-      music.loop = true;
-      await music.play();
-    } catch (_) {
-      // If a browser delays audio despite the click gesture, one more tap will resume it.
-      const resume = () => music.play().catch(() => {});
-      window.addEventListener('pointerdown', resume, { once: true });
-    }
-
-    reveal.setAttribute('aria-hidden', 'false');
-    reveal.classList.add('is-visible');
-
-    setTimeout(() => {
-      stage.classList.add('is-hidden');
-    }, 250);
+      yesMusic.currentTime = 0;
+      const p = yesMusic.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (_) {}
   });
 
-  // Warm the audio buffers without autoplaying.
-  music.load();
-  boom.load();
+  window.addEventListener('pageshow', (event) => {
+    // Also resets when the browser restores the page from back/forward cache.
+    if (event.persisted) resetApp();
+  });
+
+  window.addEventListener('resize', () => {
+    if (!noBtn.classList.contains('is-floating')) return;
+    const rect = noBtn.getBoundingClientRect();
+    const width = rect.width || 116;
+    const height = rect.height || 50;
+    const next = findSafePosition(width, height);
+    noBtn.style.left = `${next.x}px`;
+    noBtn.style.top = `${next.y}px`;
+  });
+
+  resetApp();
 })();

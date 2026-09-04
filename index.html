@@ -3,47 +3,42 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#000000" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="theme-color" content="#050505" />
   <title>Will You Be My Kirk?</title>
-
-  <link rel="preload" as="image" href="kirk.jpg" />
-  <link rel="preload" as="image" href="reaction.jpg" />
-  <link rel="preload" as="image" href="yes-reveal.jpg" />
-  <link rel="preload" as="audio" href="music.mp3" />
-  <link rel="preload" as="audio" href="vine-boom.mp3" />
-
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="styles.css?v=20260904-1" />
 </head>
 <body>
-  <main class="app" id="app">
-    <section class="stage" id="stage" aria-label="Will you be my Kirk?">
-      <img class="hero" src="kirk.jpg" alt="Will you be my Kirk?" draggable="false" />
+  <main id="proposal" class="proposal" aria-live="polite">
+    <section class="card" aria-label="Kirkiversary proposal">
+      <img
+        id="kirkImage"
+        class="hero-image"
+        src="assets/kirk.jpg?v=20260904-1"
+        alt="Will you be my Kirk?"
+        draggable="false"
+      />
 
-      <div class="controls" id="controls">
-        <button class="choice choice-yes is-locked" id="yesBtn" type="button" aria-disabled="true">
-          YES
-        </button>
-
-        <button class="choice choice-no" id="noBtn" type="button">
-          NO
-        </button>
-      </div>
-
-      <div class="hint" id="hint">Try the buttons 👀</div>
-
-      <div class="reaction-flash" id="reactionFlash" aria-hidden="true">
-        <img src="reaction.jpg" alt="" draggable="false" />
+      <div class="actions" id="actions">
+        <button id="yesBtn" class="choice yes" type="button" aria-label="Yes">YES</button>
+        <button id="noBtn" class="choice no" type="button" aria-label="No">NO</button>
       </div>
     </section>
-
-    <section class="reveal" id="reveal" aria-hidden="true">
-      <img src="yes-reveal.jpg" alt="Yes reveal meme" draggable="false" />
-    </section>
-
-    <audio id="music" src="music.mp3" preload="auto" loop></audio>
-    <audio id="boom" src="vine-boom.mp3" preload="auto"></audio>
   </main>
 
-  <script src="script.js" defer></script>
+  <div id="flashOverlay" class="flash-overlay" aria-hidden="true">
+    <img src="assets/no-reaction.jpg?v=20260904-1" alt="" draggable="false" />
+  </div>
+
+  <section id="yesScreen" class="yes-screen" aria-hidden="true">
+    <img src="assets/yes-reveal.jpg?v=20260904-1" alt="Yes" draggable="false" />
+  </section>
+
+  <audio id="boomAudio" preload="auto" src="assets/vine-boom.mp3?v=20260904-1"></audio>
+  <audio id="yesMusic" preload="auto" loop src="assets/noname.mp3?v=20260904-1"></audio>
+
+  <script src="script.js?v=20260904-1" defer></script>
 </body>
 </html>
