@@ -148,16 +148,17 @@ body {
 
 @keyframes flashLayer {
   0% { opacity: 0; }
-  10% { opacity: 1; }
-  22% { opacity: 0.02; }
-  36% { opacity: 1; }
-  52% { opacity: 0; }
-  68% { opacity: 1; }
+  12% { opacity: 1; }
+  72% { opacity: 1; }
   100% { opacity: 0; visibility: hidden; }
 }
 
 @keyframes flashImage {
-  0% { transform: scale(.78) translateY(2%) rotate(-1deg); }
+  0% { transform: scale(.72) translateY(2%); }
+  18% { transform: scale(1.06) translateY(0); }
+  72% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.04) translateY(-1%); }
+}
   12% { transform: scale(1.03) translateY(0) rotate(.5deg); }
   30% { transform: scale(.92) translateY(1%) rotate(-.4deg); }
   48% { transform: scale(1.05) translateY(-1%) rotate(.3deg); }
