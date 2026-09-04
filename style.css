@@ -139,25 +139,26 @@ body {
 
 .reaction-flash.is-playing {
   visibility: visible;
-  animation: flashLayer 920ms linear forwards;
+  animation: flashLayer 760ms ease-out forwards;
 }
 
 .reaction-flash.is-playing img {
-  animation: flashImage 920ms cubic-bezier(.2,.8,.2,1) forwards;
+  animation: flashImage 760ms cubic-bezier(.2,.8,.2,1) forwards;
 }
 
 @keyframes flashLayer {
-  0% { opacity: 0; }
-  10% { opacity: 1; }
-  22% { opacity: 0.02; }
-  36% { opacity: 1; }
-  52% { opacity: 0; }
+  0% { opacity: 0; visibility: visible; }
+  12% { opacity: 1; }
   68% { opacity: 1; }
   100% { opacity: 0; visibility: hidden; }
 }
 
 @keyframes flashImage {
-  0% { transform: scale(.78) translateY(2%) rotate(-1deg); }
+  0% { transform: scale(.78) translateY(2%); }
+  18% { transform: scale(1.06) translateY(0); }
+  68% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.03) translateY(-1%); }
+}
   12% { transform: scale(1.03) translateY(0) rotate(.5deg); }
   30% { transform: scale(.92) translateY(1%) rotate(-.4deg); }
   48% { transform: scale(1.05) translateY(-1%) rotate(.3deg); }
